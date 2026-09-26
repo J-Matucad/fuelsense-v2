@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "fuelsense-v2",
+    "slug": "fuelsense-v2",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "fuelsensev2",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/expo.icon"
+    },
+    "android": {
+      "package": "com.fuelsensev2.app",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow FuelSense to select a photo for your vehicle.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      "expo-sqlite"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9f556836-6096-482d-9ec5-062e753c86cb"
+      }
+    }
+  }
+}
