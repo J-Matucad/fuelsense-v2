@@ -230,16 +230,30 @@ export default function VehicleScreen() {
   const subtitle = [vehicle.brand, vehicle.model].filter(Boolean).join(" ");
   const baseline = fuelLogs.find((log) => log.is_baseline === 1);
   const latestOilLog = oilLogs[0];
-  const currentOdometer = Math.max(
-    fuelLogs[fuelLogs.length - 1]?.odometer_km ?? 0,
-    latestOilLog?.odometer_km ?? 0,
+  const currentOdometer = fuelLogs[fuelLogs.length - 1]?.odometer_km ?? 0;
+  const latestEngineOilLog = oilLogs.find((log) =>
+    log.oil_type?.toLowerCase().includes("engine oil"),
   );
-  const nextOilDue =
-    latestOilLog && vehicle.oil_change_interval_km
-      ? latestOilLog.odometer_km + vehicle.oil_change_interval_km
+  const latestGearOilLog = oilLogs.find((log) =>
+    log.oil_type?.toLowerCase().includes("gear oil"),
+  );
+  const engineOilInterval = vehicle.oil_change_interval_km;
+  const gearOilInterval =
+    vehicle.oil_change_interval_km === null
+      ? null
+      : vehicle.oil_change_interval_km * 2;
+  const nextEngineOilDue =
+    latestEngineOilLog && engineOilInterval
+      ? latestEngineOilLog.odometer_km + engineOilInterval
       : null;
-  const oilDistanceRemaining =
-    nextOilDue === null ? null : nextOilDue - currentOdometer;
+  const nextGearOilDue =
+    latestGearOilLog && gearOilInterval
+      ? latestGearOilLog.odometer_km + gearOilInterval
+      : null;
+  const engineOilDistanceRemaining =
+    nextEngineOilDue === null ? null : nextEngineOilDue - currentOdometer;
+  const gearOilDistanceRemaining =
+    nextGearOilDue === null ? null : nextGearOilDue - currentOdometer;
   const fullLogs = fuelLogs.filter((log) => log.is_full === 1);
   const completedIntervals = (() => {
     const intervals: { distance: number; liters: number }[] = [];
@@ -360,11 +374,9 @@ export default function VehicleScreen() {
   };
 
   const openOilEntry = () => {
-    const latestOdometer = Math.max(
-      fuelLogs[fuelLogs.length - 1]?.odometer_km ?? 0,
-      oilLogs[0]?.odometer_km ?? 0,
+    setOilOdometer(
+      oilLogs[0] ? String(oilLogs[0].odometer_km) : "",
     );
-    setOilOdometer(String(latestOdometer || ""));
     setOilServices(["Engine oil"]);
     setOilNotes("");
     setOilEntryVisible(true);
@@ -372,10 +384,7 @@ export default function VehicleScreen() {
 
   const saveOilEntry = async () => {
     const odometer = Number(oilOdometer);
-    const latestOdometer = Math.max(
-      fuelLogs[fuelLogs.length - 1]?.odometer_km ?? 0,
-      oilLogs[0]?.odometer_km ?? 0,
-    );
+    const latestOilOdometer = oilLogs[0]?.odometer_km ?? 0;
     if (oilServices.length === 0) {
       Alert.alert(
         "Select oil changed",
@@ -386,11 +395,11 @@ export default function VehicleScreen() {
     if (
       !oilOdometer.trim() ||
       !Number.isFinite(odometer) ||
-      odometer < latestOdometer
+      odometer < latestOilOdometer
     ) {
       Alert.alert(
         "Check odometer",
-        `Enter a reading at least as high as ${latestOdometer.toLocaleString()} km.`,
+        `Enter a reading at least as high as the latest oil change: ${latestOilOdometer.toLocaleString()} km.`,
       );
       return;
     }
@@ -599,7 +608,15 @@ export default function VehicleScreen() {
               ) : (
                 <>
                   <View style={styles.metricRow}>
-                    <View style={styles.metric}>
+                    <View
+                      style={[
+                        styles.metricCard,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                    >
                       <Text
                         style={[
                           typography.label,
@@ -614,7 +631,15 @@ export default function VehicleScreen() {
                         {economy === null ? "—" : `${economy.toFixed(2)} km/L`}
                       </Text>
                     </View>
-                    <View style={styles.metric}>
+                    <View
+                      style={[
+                        styles.metricCard,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                    >
                       <Text
                         style={[
                           typography.label,
@@ -772,47 +797,76 @@ export default function VehicleScreen() {
                 </Pressable>
               </View>
               <View style={styles.metricRow}>
-                <View style={styles.metric}>
-                  <Text
-                    style={[
-                      typography.label,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    LAST OIL CHANGE
-                  </Text>
-                  <Text style={[typography.subHeader, { color: colors.text }]}>
-                    {latestOilLog
-                      ? `${latestOilLog.odometer_km.toLocaleString()} km`
-                      : "—"}
-                  </Text>
-                </View>
-                <View style={styles.metric}>
-                  <Text
-                    style={[
-                      typography.label,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    NEXT OIL CHANGE
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[typography.label, { color: colors.textSecondary }]}>
+                    ENGINE OIL
                   </Text>
                   <Text
                     style={[
                       typography.subHeader,
                       {
                         color:
-                          oilDistanceRemaining !== null &&
-                          oilDistanceRemaining < 0
+                          engineOilDistanceRemaining !== null &&
+                          engineOilDistanceRemaining < 0
                             ? colors.danger
                             : colors.text,
                       },
                     ]}
                   >
-                    {nextOilDue === null
+                    {nextEngineOilDue === null
                       ? "—"
-                      : oilDistanceRemaining! < 0
-                        ? `${Math.abs(oilDistanceRemaining!).toLocaleString()} km overdue`
-                        : `${nextOilDue.toLocaleString()} km`}
+                      : engineOilDistanceRemaining! < 0
+                        ? `${Math.abs(engineOilDistanceRemaining!).toLocaleString()} km overdue`
+                        : `${nextEngineOilDue.toLocaleString()} km`}
+                  </Text>
+                  <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                    {latestEngineOilLog
+                      ? `Last changed at ${latestEngineOilLog.odometer_km.toLocaleString()} km`
+                      : "Log an engine oil change to start tracking"}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[typography.label, { color: colors.textSecondary }]}>
+                    GEAR OIL
+                  </Text>
+                  <Text
+                    style={[
+                      typography.subHeader,
+                      {
+                        color:
+                          gearOilDistanceRemaining !== null &&
+                          gearOilDistanceRemaining < 0
+                            ? colors.danger
+                            : colors.text,
+                      },
+                    ]}
+                  >
+                    {nextGearOilDue === null
+                      ? "—"
+                      : gearOilDistanceRemaining! < 0
+                        ? `${Math.abs(gearOilDistanceRemaining!).toLocaleString()} km overdue`
+                        : `${nextGearOilDue.toLocaleString()} km`}
+                  </Text>
+                  <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                    {latestGearOilLog
+                      ? `Last changed at ${latestGearOilLog.odometer_km.toLocaleString()} km`
+                      : "Log a gear oil change to start tracking"}
                   </Text>
                 </View>
               </View>
@@ -1510,7 +1564,16 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
   },
   metricRow: { flexDirection: "row", gap: spacing.sm },
-  metric: { flex: 1, gap: spacing.xs },
+  metricCard: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 88,
+    justifyContent: "center",
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderRadius: radius.medium,
+    padding: spacing.md,
+  },
   viewAllText: { fontSize: 11, letterSpacing: 0.35 },
   recentFuelLogs: { gap: spacing.xs },
   fuelHistoryRow: {

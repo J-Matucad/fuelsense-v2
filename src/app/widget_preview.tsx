@@ -40,8 +40,8 @@ type WidgetData = {
 
 type OilVehicleRow = VehicleForWidget & {
   oil_change_interval_km: number;
-  last_oil_odometer: number | null;
-  last_oil_type: string | null;
+  last_engine_oil_odometer: number | null;
+  last_gear_oil_odometer: number | null;
   last_fuel_odometer: number | null;
 };
 
@@ -125,11 +125,11 @@ export default function WidgetPreviewScreen() {
               `SELECT v.id, v.name, v.brand, v.model,
                       v.oil_change_interval_km,
                       (SELECT odometer_km FROM oil_logs
-                       WHERE vehicle_id = v.id
-                       ORDER BY odometer_km DESC, id DESC LIMIT 1) AS last_oil_odometer,
-                      (SELECT oil_type FROM oil_logs
-                       WHERE vehicle_id = v.id
-                       ORDER BY odometer_km DESC, id DESC LIMIT 1) AS last_oil_type,
+                       WHERE vehicle_id = v.id AND oil_type LIKE '%Engine oil%'
+                       ORDER BY odometer_km DESC, id DESC LIMIT 1) AS last_engine_oil_odometer,
+                      (SELECT odometer_km FROM oil_logs
+                       WHERE vehicle_id = v.id AND oil_type LIKE '%Gear oil%'
+                       ORDER BY odometer_km DESC, id DESC LIMIT 1) AS last_gear_oil_odometer,
                       (SELECT odometer_km FROM fuel_logs
                        WHERE vehicle_id = v.id
                        ORDER BY odometer_km DESC, id DESC LIMIT 1) AS last_fuel_odometer
@@ -140,29 +140,39 @@ export default function WidgetPreviewScreen() {
           ]);
 
           const oilReminders = oilVehicles
-            .map((row) => {
-              const currentOdometer = Math.max(
-                row.last_oil_odometer ?? 0,
-                row.last_fuel_odometer ?? 0,
-              );
-              const nextDue =
-                row.last_oil_odometer === null
-                  ? null
-                  : row.last_oil_odometer + row.oil_change_interval_km;
-              return {
-                vehicle: {
-                  id: row.id,
-                  name: row.name,
-                  brand: row.brand,
-                  model: row.model,
+            .flatMap((row) => {
+              const vehicle = {
+                id: row.id,
+                name: row.name,
+                brand: row.brand,
+                model: row.model,
+              };
+              const currentOdometer = row.last_fuel_odometer ?? 0;
+              return ([
+                {
+                  serviceType: "ENGINE OIL",
+                  interval: row.oil_change_interval_km,
+                  lastOdometer: row.last_engine_oil_odometer,
                 },
-                interval: row.oil_change_interval_km,
-                lastOdometer: row.last_oil_odometer,
-                currentOdometer,
-                nextDue,
-                remaining: nextDue === null ? null : nextDue - currentOdometer,
-                serviceType: row.last_oil_type,
-              } satisfies OilWidgetData;
+                {
+                  serviceType: "GEAR OIL",
+                  interval: row.oil_change_interval_km * 2,
+                  lastOdometer: row.last_gear_oil_odometer,
+                },
+              ] as const).map((service) => {
+                const nextDue = service.lastOdometer === null
+                  ? null
+                  : service.lastOdometer + service.interval;
+                return {
+                  vehicle,
+                  interval: service.interval,
+                  lastOdometer: service.lastOdometer,
+                  currentOdometer,
+                  nextDue,
+                  remaining: nextDue === null ? null : nextDue - currentOdometer,
+                  serviceType: service.serviceType,
+                } satisfies OilWidgetData;
+              });
             })
             .sort((a, b) => {
               if (a.remaining === null) return b.remaining === null ? 0 : 1;
@@ -375,7 +385,7 @@ export default function WidgetPreviewScreen() {
 
                 {oilWidgetData.remaining === null ? (
                   <View style={styles.oilFirstChange}>
-                    <Text style={styles.statLabel}>OIL SERVICE</Text>
+                    <Text style={styles.statLabel}>{oilWidgetData.serviceType}</Text>
                     <Text style={styles.oilFirstChangeValue}>LOG FIRST CHANGE</Text>
                     <Text style={styles.emptyDescription}>
                       Then reminders can track this vehicle’s next due mileage.
@@ -384,7 +394,7 @@ export default function WidgetPreviewScreen() {
                 ) : (
                   <>
                     <View style={styles.reminderBlock}>
-                      <Text style={styles.statLabel}>NEXT OIL CHANGE</Text>
+                    <Text style={styles.statLabel}>{oilWidgetData.serviceType}</Text>
                       <View style={styles.reminderValueRow}>
                         <Text
                           adjustsFontSizeToFit
@@ -440,7 +450,7 @@ export default function WidgetPreviewScreen() {
                         ]}
                       />
                       <Text style={styles.footerText} numberOfLines={1}>
-                        {(oilWidgetData.serviceType || "OIL SERVICE").toUpperCase()} · LAST CHANGE {oilWidgetData.lastOdometer!.toLocaleString()} KM
+                        LAST CHANGE {oilWidgetData.lastOdometer!.toLocaleString()} KM · ODO {oilWidgetData.currentOdometer.toLocaleString()} KM
                       </Text>
                     </View>
                   </>

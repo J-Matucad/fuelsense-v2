@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import { Fuel, Moon, Sun } from "lucide-react-native";
+import { Cloud, Fuel, Moon, Sun } from "lucide-react-native";
 import {
   Pressable,
   ScrollView,
@@ -27,6 +27,41 @@ export default function MenuScreen() {
         <Text style={[typography.header, styles.title, { color: colors.text }]}>
           MENU
         </Text>
+
+        <Text style={[typography.label, styles.sectionTitle, { color: colors.textSecondary }]}>
+          ACCOUNT
+        </Text>
+        <View
+          style={[
+            styles.menuItem,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.iconContainer}>
+            <Cloud size={19} color={colors.icon} strokeWidth={1.8} />
+          </View>
+          <View style={styles.itemText}>
+            <Text style={[typography.button, styles.itemTitle, { color: colors.text }]}>
+              Sync your data
+            </Text>
+            <Text style={[typography.caption, { color: colors.textSecondary }]}>
+              Sign in to back up your vehicles and records
+            </Text>
+          </View>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: true }}
+          disabled
+          style={[
+            styles.googleButton,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[typography.button, { color: colors.textSecondary }]}>
+            Continue with Google · Coming soon
+          </Text>
+        </Pressable>
 
         <Text style={[typography.label, styles.sectionTitle, { color: colors.textSecondary }]}>
           PREFERENCES
@@ -137,6 +172,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   widgetItem: { marginBottom: spacing.xs },
+  googleButton: {
+    minHeight: 52,
+    borderRadius: radius.medium,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    opacity: 0.72,
+  },
   iconContainer: {
     width: 34,
     height: 34,
